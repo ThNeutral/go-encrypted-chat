@@ -1,37 +1,47 @@
 package server
 
 import (
-	"chat/shared/channel"
-	"fmt"
+	"chat/shared/ecdh"
+	"log"
 	"net"
 )
 
 type Server struct {
-	conn     *net.UDPConn
-	receiver *channel.Receiver
+	listener *net.TCPListener
 }
 
-func New(addr *net.UDPAddr) (*Server, error) {
-	conn, err := net.ListenUDP("udp", addr)
+func New(addr *net.TCPAddr) (*Server, error) {
+	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
-	receiver := channel.NewReceiver(conn)
-	receiver.OnSuccess(func(mt channel.MessageType, b []byte) {
-		fmt.Println(mt)
-		fmt.Println(string(b))
-	})
-	receiver.OnError(func(err error) {
-		fmt.Println(err)
-	})
-
 	return &Server{
-		conn:     conn,
-		receiver: receiver,
+		listener: listener,
 	}, nil
 }
 
 func (s *Server) Listen() {
-	s.receiver.Run()
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			log.Println("Failed to accept connection")
+			continue
+		}
+
+		ecdh, err := ecdh.NewX25519()
+		if err != nil {
+			log.Println("Failed to create ECDH instance")
+			conn.Close()
+			continue
+		}
+
+		handler := &Handler{
+			conn: conn,
+			ecdh: ecdh,
+		}
+
+		log.Println("Client " + conn.LocalAddr().String() + " has disconnected")
+		go handler.Start()
+	}
 }
