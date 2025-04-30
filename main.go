@@ -5,15 +5,14 @@ import (
 	"chat/server"
 	"chat/shared/config"
 	"fmt"
+	"os"
 )
 
 func main() {
 	inst := config.Instance()
-	errs := inst.Init()
-	if errs != nil {
-		for _, err := range errs {
-			fmt.Println(err)
-		}
+	err := inst.Init(os.Args)
+	if err != nil {
+		fmt.Printf("Failed to init config: %v\n", err.Error())
 		return
 	}
 

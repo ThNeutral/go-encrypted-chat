@@ -10,7 +10,7 @@ import (
 
 type Handler struct {
 	conn net.Conn
-	ecdh *ecdh.ECDH
+	ecdh ecdh.ECDH
 }
 
 func (h *Handler) Start() {

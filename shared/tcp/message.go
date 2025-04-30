@@ -3,6 +3,7 @@ package tcp
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 type MessageType byte
@@ -15,8 +16,10 @@ const (
 	INVALID MessageType = 0b11111111
 )
 
+var ValidMessageTypes = []MessageType{CLIENT_HELLO, SERVER_HELLO, TESTING}
+
 func (mt MessageType) Validate() error {
-	if mt == CLIENT_HELLO || mt == SERVER_HELLO || mt == TESTING || mt == INVALID {
+	if slices.Contains(ValidMessageTypes, mt) {
 		return nil
 	}
 	return fmt.Errorf("invalid MessageType: %v", mt.Byte())

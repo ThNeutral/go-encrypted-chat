@@ -1,6 +1,7 @@
 package server
 
 import (
+	"chat/shared/aes"
 	"chat/shared/tcp"
 )
 
@@ -32,7 +33,7 @@ func (h *Handler) readAndDecryptMessage() (tcp.Message, error) {
 		return message, err
 	}
 
-	plaintext, err := tcp.Decrypt(cyphertext, key)
+	plaintext, err := aes.Decrypt(cyphertext, key)
 	if err != nil {
 		return message, err
 	}
@@ -57,7 +58,7 @@ func (h *Handler) encryptAndWriteMessage(message tcp.Message) error {
 
 	plaintext := message.Serialize()
 
-	cyphertext, err := tcp.Encrypt(plaintext, key)
+	cyphertext, err := aes.Encrypt(plaintext, key)
 	if err != nil {
 		return err
 	}

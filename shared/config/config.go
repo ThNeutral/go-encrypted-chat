@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"net"
+
+	"github.com/google/uuid"
 )
 
 type AppType string
@@ -14,32 +16,45 @@ const (
 )
 
 type Config interface {
-	Init() []error
+	Init(args []string) error
 	Type() AppType
 	Addr() *net.TCPAddr
 }
 
 func Instance() Config {
-	return &inst
+	if inst == nil {
+		inst = NewConfig().(*impl)
+	}
+	return inst
 }
 
-var inst impl
+var inst *impl
+
+// Only for testing
+func NewConfig() Config {
+	return &impl{
+		fs: flag.NewFlagSet(uuid.New().String(), flag.ContinueOnError),
+	}
+}
 
 type impl struct {
 	t    AppType
 	addr *net.TCPAddr
+	fs   *flag.FlagSet
 }
 
-func (i *impl) Init() []error {
-	serverFlag := flag.Bool("server", false, "Run as server")
-	clientFlag := flag.Bool("client", false, "Run as client")
-	addrFlag := flag.String("addr", "", "Addr for the server to listen on or for client to connect to")
+func (i *impl) Init(args []string) error {
+	serverFlag := i.fs.Bool("server", false, "Run as server")
+	clientFlag := i.fs.Bool("client", false, "Run as client")
+	addrFlag := i.fs.String("addr", "", "Addr for the server to listen on or for client to connect to")
 
-	flag.Parse()
+	err := i.fs.Parse(args)
+	if err != nil {
+		return err
+	}
 
-	var errs []error
 	if *serverFlag && *clientFlag {
-		errs = append(errs, errors.New("cannot run app as server and client at the same time"))
+		return errors.New("cannot run app as server and client at the same time")
 	}
 
 	if *serverFlag {
@@ -47,27 +62,22 @@ func (i *impl) Init() []error {
 	} else if *clientFlag {
 		i.t = CLIENT
 	} else {
-		errs = append(errs, errors.New("must provide app type as flag. Available app type flags are --server OR --client"))
+		return errors.New("must provide app type as flag. Available app type flags are --server OR --client")
 	}
 
 	if *addrFlag == "" {
-		errs = append(errs, errors.New("address must be provided using --addr=host:port"))
-	} else {
-		addr, err := net.ResolveTCPAddr("tcp", *addrFlag)
-		if err != nil {
-			errs = append(errs, err)
-		} else {
-			i.addr = addr
-		}
+		return errors.New("address must be provided using --addr=host:port")
 	}
 
-	if len(errs) != 0 {
-		return errs
+	addr, err := net.ResolveTCPAddr("tcp", *addrFlag)
+	if err != nil {
+		return err
+	} else {
+		i.addr = addr
 	}
 
 	return nil
 }
-
 func (i *impl) Type() AppType {
 	return i.t
 }

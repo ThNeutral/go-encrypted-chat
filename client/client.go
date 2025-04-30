@@ -8,7 +8,7 @@ import (
 
 type Client struct {
 	conn net.Conn
-	ecdh *ecdh.ECDH
+	ecdh ecdh.ECDH
 }
 
 func New(target *net.TCPAddr) (*Client, error) {
